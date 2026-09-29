@@ -1,7 +1,8 @@
 /* The Qeema domain. Everything the UI shows is derived from these shapes (see lib/logic.ts). */
 
-export type PersonId = "u1" | "u2" | "u3" | "u4" | "u5";
-export interface Person { id: PersonId; ini: string; name: string; role: string }
+/* Demo people are u1–u5; live people are Supabase user ids. */
+export type PersonId = string;
+export interface Person { id: PersonId; ini: string; name: string; role: string; admin?: boolean }
 
 export type ScenarioKey = "cert" | "score" | "none" | "young";
 export interface Scenario {
@@ -21,6 +22,8 @@ export interface Doc {
   annex?: boolean;     // attached to every response
   energyOnly?: boolean;
   note?: string;
+  path?: string;        // Supabase storage path (live) or session file id (demo)
+  size?: number;
 }
 
 export interface TenderMeta {
@@ -85,7 +88,12 @@ export type Stage = 2 | 3 | 4 | 5;
 export type GoDecision = "go" | "nogo" | null;
 export type Outcome = "won" | "lost" | null;
 
+export interface StoredFile { n: string; path?: string; size?: number }
+
 export interface Tender {
+  key: string;         // route and database id; meta.id is the buyer's reference
+  manual?: boolean;    // entered by hand from an uploaded file, not read by Qeema
+  filePath?: string;
   meta: TenderMeta;
   det: TenderDetails;
   go: GoDecision;
@@ -98,6 +106,7 @@ export interface Tender {
   reached: number;
   readN: number;
   extra: string[];
+  extraFiles?: StoredFile[];
   settings: { cover: boolean; vault: boolean };
   gatedOverride: boolean | null;
   exported: boolean;
@@ -132,6 +141,10 @@ export interface Onboarding {
 }
 
 export interface State {
+  mode: "demo" | "live";
+  orgId: string | null;
+  joinCode: string | null;
+  people: Person[];
   scenario: ScenarioKey;
   theme: "light" | "dark";
   /* route/cur/stage mirror the URL. They matter for demo deep links, which set them and then navigate. */
@@ -142,7 +155,7 @@ export interface State {
   tenders: Record<string, Tender>;
   order: string[];
   cur: string | null;
-  up: { pick: string | null; cover: boolean; vault: boolean; extra: string[] };
+  up: { pick: string | null; file: StoredFile | null; cover: boolean; vault: boolean; extra: string[]; extraFiles: StoredFile[] };
   filter: Filter;
   sel: string | null;
   focus: boolean;

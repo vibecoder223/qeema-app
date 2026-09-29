@@ -1,8 +1,8 @@
 "use client";
-/* /tenders/[id]/[tab]. The URL is the source of truth for which stage you see;
+/* /tender/[tab]?id=… The URL is the source of truth for which stage you see;
    a tab you cannot open yet redirects to the furthest one you can. */
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { STAGE_OF, position, stageOpen } from "@/lib/logic";
 import { useStore } from "@/lib/store";
 import { Details } from "./Details";
@@ -12,8 +12,8 @@ import { TenderTop } from "./TenderTop";
 import { Advisory, Alternatives, Verdict } from "./Verdict";
 
 export function TenderRoute() {
-  const params = useParams<{ id: string; tab: string }>();
-  const id = decodeURIComponent(params.id), n = STAGE_OF[params.tab];
+  const params = useParams<{ tab: string }>();
+  const id = useSearchParams().get("id") ?? "", n = STAGE_OF[params.tab];
   const router = useRouter();
   const t = useStore((s) => s.tenders[id]);
   const s = useStore();
@@ -30,7 +30,7 @@ export function TenderRoute() {
         if (d.cur !== id) Object.assign(d, { sel: null, focus: false, edit: false, filter: "todo" });
         d.cur = id; d.route = "tender"; x.stage = n; x.reached = Math.max(x.reached, n);
       });
-    document.title = `${id} · Qeema`;
+    document.title = `${S.tenders[id].meta.id || "Tender"} · Qeema`;
   }, [id, n, router, ok]);
 
   if (!synced) return null;

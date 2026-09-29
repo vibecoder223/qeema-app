@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { Body, Top } from "@/components/ui";
-import { days, short } from "@/lib/format";
+import { days, short, pct } from "@/lib/format";
 import { POSN, docState, position, prog, stepsFor } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
 
@@ -44,11 +44,11 @@ export function Tenders() {
                 const t = s.tenders[id], p = prog(t), pos = position(s, t), st = stepsFor(s, t)[t.stage - 1];
                 return (
                   <tr key={id} className="click" onClick={() => { const to = a.open(id); if (to) router.push(to); }}>
-                    <td><b>{id}</b>{t.meta.buyer} · {t.meta.title}</td>
+                    <td><b>{t.meta.id || "No reference"}</b>{[t.meta.buyer, t.meta.title].filter(Boolean).join(" · ")}</td>
                     <td><span className={`pos ${t.reached < 3 ? "new" : pos}`}><i />{t.reached < 3 && <I.read />}{t.reached < 3 ? "Reading" : POSN[pos]}</span></td>
                     <td>{pos === "excluded" || t.reached < 4
                       ? <span className="meta">·</span>
-                      : <><div className="bar"><i style={{ width: `${Math.round((p.approved / p.total) * 100)}%` }} /></div><span className="meta tnum">{p.approved} of {p.total} approved</span></>}</td>
+                      : <><div className="bar"><i style={{ width: `${pct(p.approved, p.total)}%` }} /></div><span className="meta tnum">{p.approved} of {p.total} approved</span></>}</td>
                     <td>{t.exported ? "Exported" : st}</td>
                     <td className="tnum">{short(t.meta.deadline)}<br /><span className="meta">{days(t.meta.deadline)} days</span></td>
                   </tr>

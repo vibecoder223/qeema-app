@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { Body } from "@/components/ui";
-import { downloadDoc } from "@/lib/download";
+import { useState } from "react";
+import { todayIso } from "@/lib/clock";
+import { downloadDoc, refOf } from "@/lib/download";
+import { downloadPack } from "@/lib/pack";
 import { fmtDate, letter, qr } from "@/lib/format";
 import { annexes, blockers, docLabel, gateRows, letterClaims, position, prog, type GateRow } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
@@ -15,6 +18,13 @@ export function Export({ t }: { t: Tender }) {
   const router = useRouter();
   const bl = blockers(s, t), rows = gateRows(s, t), p = prog(t), pos = position(s, t), ax = annexes(s, t);
   const unap = p.total - p.approved;
+  const [packing, setPacking] = useState(false);
+  const pack = async () => {
+    setPacking(true);
+    const missing = await downloadPack(s, t);
+    setPacking(false); a.download();
+    if (missing.length) a.say(`Pack downloaded · ${missing.length} annex file${missing.length > 1 ? "s" : ""} not uploaded yet, marked in the manifest`);
+  };
 
   const act = (r: GateRow) => {
     if (r.kind === "profile") router.push("/profile");
@@ -69,8 +79,8 @@ export function Export({ t }: { t: Tender }) {
         <div className="pk2">
           <div className="pkh">
             <span className="fi fo"><I.folder /></span>
-            <div className="vn"><b>{t.meta.id}-response.zip</b><span>{bl.length ? `Clear the ${rows.length} item${rows.length > 1 ? "s" : ""} above to download` : "Download only. Qeema never submits on your behalf, and never signs."}</span></div>
-            <button className="btn p dl" disabled={bl.length > 0} onClick={() => { downloadDoc(s, t); a.download(); }}><I.down />Download bid pack</button>
+            <div className="vn"><b>{refOf(t)}-response.zip</b><span>{bl.length ? `Clear the ${rows.length} item${rows.length > 1 ? "s" : ""} above to download` : "Download only. Qeema never submits on your behalf, and never signs."}</span></div>
+            <button className="btn p dl" disabled={bl.length > 0 || packing} onClick={pack}><I.down />{packing ? "Packing…" : "Download bid pack"}</button>
           </div>
           <div className="mfh">Files<span>3</span></div>
           {file(<I.file />, "00-Submission-checklist.txt", "What to print, sign and seal", true, "Ready")}
@@ -134,7 +144,7 @@ function Paper({ t }: { t: Tender }) {
       {t.settings.cover && (
         <>
           <h5>{s.org.name}</h5>
-          <p>{s.org.addr} · CR {s.org.cr}<br />25 September 2026</p>
+          <p>{s.org.addr} · CR {s.org.cr}<br />{fmtDate(todayIso())}</p>
           <p>To: {t.meta.buyer}<br />Re: {t.meta.id}, {t.meta.title}</p>
           <p>{s.org.name} submits this response to tender {t.meta.id}.</p>
           {claims && <div className="claim">{claims}</div>}

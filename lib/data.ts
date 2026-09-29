@@ -4,7 +4,6 @@ import { fmtDate } from "./format";
 import { isExempt } from "./logic";
 import type { Doc, Org, Person, Question, Reuse, Scenario, ScenarioKey, TenderDetails, TenderMeta, PersonId } from "./types";
 
-export const TODAY = new Date("2026-09-25T12:00:00");
 export const PEOPLE: Person[] = [
   {id:"u1",ini:"RS",name:"Rand Al-Sada",role:"Bid manager"},
   {id:"u2",ini:"FM",name:"Faisal Al-Mannai",role:"Finance and ICV"},

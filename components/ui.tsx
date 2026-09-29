@@ -46,8 +46,9 @@ export function Body({ wide, children, style }: { wide?: boolean; children: Reac
 
 /* Highlights @mentions in a comment. */
 export function Mentions({ text }: { text: string }) {
-  const people = ["Rand Al-Sada", "Faisal Al-Mannai", "Noor Al-Kuwari", "Hamad Al-Ansari", "Layla Haddad"];
-  const names = [...people, ...people.map((n) => n.split(" ")[0])].sort((a, b) => b.length - a.length);
+  const people = useStore.getState().people.map((p) => p.name);
+  const names = [...people, ...people.map((n) => n.split(" ")[0])].filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!names.length) return <>{text}</>;
   const re = new RegExp("(@(?:" + names.map((n) => n.replace(/[-]/g, "\\-")).join("|") + "))", "g");
   return <>{text.split(re).map((part, i) => (part.startsWith("@") && names.includes(part.slice(1)) ? <mark key={i}>{part}</mark> : part))}</>;
 }

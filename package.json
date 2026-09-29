@@ -6,10 +6,12 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "bash scripts/deploy-pages.sh"
   },
   "dependencies": {
     "immer": "^11.1.18",
+    "jszip": "^3.10.2",
     "next": "^15.5.26",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

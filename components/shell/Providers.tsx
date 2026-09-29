@@ -4,6 +4,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { READ_STEPS } from "@/lib/logic";
+import { readAndDraft } from "@/lib/ai/run";
 import { EMBED, SCREENS, pathOf, useStore } from "@/lib/store";
 import { PEOPLE, SCEN } from "@/lib/data";
 import type { PersonId, ScenarioKey } from "@/lib/types";
@@ -27,7 +28,12 @@ export function Providers({ children }: { children: ReactNode }) {
       router.replace(pathOf(next));
       setReady(true);
     } else {
-      Promise.resolve(useStore.persist.rehydrate()).then(() => setReady(true));
+      Promise.resolve(useStore.persist.rehydrate()).then(() => {
+        /* an upload that was still being read when the page closed: read it again */
+        const S = useStore.getState();
+        S.order.forEach((k) => { const t = S.tenders[k]; if (t.manual && t.readN < READ_STEPS) readAndDraft(k); });
+        setReady(true);
+      });
     }
   }, [router]);
 
@@ -49,7 +55,8 @@ function Theme() {
 
 /* Tender reading keeps going wherever you are in the app. */
 function Reader() {
-  const reading = useStore((s) => s.order.filter((id) => s.tenders[id].readN < READ_STEPS).join(","));
+  /* Sample tenders tick through the steps; uploaded ones advance as the AI jobs finish (lib/ai/run.ts). */
+  const reading = useStore((s) => s.order.filter((id) => s.tenders[id].readN < READ_STEPS && !s.tenders[id].manual).join(","));
   useEffect(() => {
     if (!reading) return;
     const fast = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -56,7 +56,7 @@ export function Icv() {
                   <span className="slab" style={{ padding: 0 }}>Closed to you this quarter</span>
                   {s.exclusions.length ? (
                     <table className="tbl"><tbody>
-                      {s.exclusions.map((id) => <tr key={id}><td><b>{id}</b>{TENDERS[id].buyer} · {TENDERS[id].title}</td><td className="tnum" style={{ textAlign: "end" }}>{qr(TENDERS[id].value)}</td></tr>)}
+                      {s.exclusions.filter((k) => s.tenders[k]).map((k) => { const m = s.tenders[k].meta; return <tr key={k}><td><b>{m.id}</b>{m.buyer} · {m.title}</td><td className="tnum" style={{ textAlign: "end" }}>{m.value ? qr(m.value) : ""}</td></tr>; })}
                     </tbody></table>
                   ) : <p className="meta" style={{ marginTop: 6 }}>None yet. Qeema records each energy-sector tender you could not bid, so the cost of not certifying is a number, not a feeling.</p>}
                 </div>

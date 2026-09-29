@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { readAndDraft } from "@/lib/ai/run";
+import { aiBy } from "@/lib/ai";
+import { fmtSize, putFile } from "@/lib/files";
 import { I } from "@/components/icons";
 import { Body, Toggle, Top } from "@/components/ui";
 import { TENDERS } from "@/lib/data";
@@ -13,6 +17,15 @@ export function NewTender() {
   const router = useRouter();
   const u = s.up, lib = libCount(s);
   const m = u.pick ? TENDERS[u.pick] : null;
+  const [over, setOver] = useState(false);
+  const take = async (files: File[]) => { const f = files[0]; if (f) a.pickFile(await putFile(f)); };
+  const extra = async (files: File[]) => { const out = []; for (const f of files) out.push(await putFile(f)); a.addExtraFiles(out); };
+  const go = () => {
+    const p = a.start(); if (!p) return;
+    const key = useStore.getState().cur;
+    if (u.file && key) readAndDraft(key);
+    router.push(p);
+  };
 
   return (
     <>
@@ -21,22 +34,31 @@ export function NewTender() {
         <h1 className="h1">New tender</h1>
         <p className="lede">Drop the tender document. Nothing else to fill in.</p>
         <div style={{ marginTop: 22 }}>
-          {!m ? (
-            <div className="drop" style={{ cursor: "default" }}>
-              <span className="ic"><I.up /></span>
-              <h4>Drop your tender here</h4>
-              <p>PDF or Word, up to 40 MB</p>
-              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                <span className="meta" style={{ alignSelf: "center" }}>Try one:</span>
-                {Object.values(TENDERS).map((x) => <button key={x.id} className="chip" onClick={() => a.pick(x.id)}>{x.id} · {x.buyer}</button>)}
-              </div>
+          {u.file ? (
+            <div className="file">
+              <span className="fi">{(u.file.n.split(".").pop() || "file").slice(0, 4).toUpperCase()}</span>
+              <div><div className="fn">{u.file.n}</div><div className="fs">{fmtSize(u.file.size)} · read by {aiBy()}</div></div>
+              <button className="btn q sm" onClick={() => a.pickFile(null)} style={{ marginInlineStart: "auto" }}>Remove</button>
             </div>
-          ) : (
+          ) : m ? (
             <div className="file">
               <span className="fi">PDF</span>
-              <div><div className="fn">{m.file}</div><div className="fs">{m.size} · {m.pages} pages · {m.buyer}</div></div>
+              <div><div className="fn">{m.file}</div><div className="fs">{m.size} · {m.pages} pages · {m.buyer} · sample</div></div>
               <button className="btn q sm" onClick={() => a.pick(null)} style={{ marginInlineStart: "auto" }}>Remove</button>
             </div>
+          ) : (
+            <label className={`drop${over ? " over" : ""}`}
+              onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+              onDrop={(e) => { e.preventDefault(); setOver(false); take([...e.dataTransfer.files]); }}>
+              <input type="file" hidden accept=".pdf,.doc,.docx,.txt" onChange={(e) => { take([...(e.target.files ?? [])]); e.target.value = ""; }} />
+              <span className="ic"><I.up /></span>
+              <h4>Drop your tender here</h4>
+              <p>PDF or Word · or click to choose a file</p>
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }} onClick={(e) => e.preventDefault()}>
+                <span className="meta" style={{ alignSelf: "center" }}>Or try a sample:</span>
+                {Object.values(TENDERS).map((x) => <button key={x.id} className="chip" onClick={(e) => { e.preventDefault(); a.pick(x.id); }}>{x.id} · {x.buyer}</button>)}
+              </div>
+            </label>
           )}
         </div>
 
@@ -74,7 +96,7 @@ export function NewTender() {
                 )}
               </div>
               <label className="btn o sm" style={{ cursor: "pointer" }}>
-                <input type="file" multiple hidden onChange={(e) => { a.addExtra([...(e.target.files ?? [])].map((f) => f.name)); e.target.value = ""; }} />
+                <input type="file" multiple hidden onChange={(e) => { extra([...(e.target.files ?? [])]); e.target.value = ""; }} />
                 <I.plus />Add files
               </label>
             </div>
@@ -88,7 +110,7 @@ export function NewTender() {
 
         <div className="ob-foot">
           <span className="meta">Reading takes under a minute</span>
-          <div className="r"><button className="btn p lg" disabled={!u.pick} onClick={() => { const p = a.start(); if (p) router.push(p); }}>Read tender</button></div>
+          <div className="r"><button className="btn p lg" disabled={!u.pick && !u.file} onClick={go}>Read tender</button></div>
         </div>
       </Body>
     </>

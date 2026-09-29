@@ -1,5 +1,6 @@
 /* Derived state. Pure functions of State: nothing here is stored, so nothing can drift. */
-import { LEVERS, TODAY } from "./data";
+import { LEVERS } from "./data";
+import { today } from "./clock";
 import { days, fmtDate, pad, person, short } from "./format";
 import type { Doc, Entitlement, Filter, Org, PersonId, Position, Question, Stage, State, Tender } from "./types";
 
@@ -28,7 +29,7 @@ export const docById = (s: State, id: string) => s.docs.find((d) => d.id === id)
 export function isExempt(org: Pick<Org, "est">): boolean {
   const end = new Date(org.est + "T12:00:00");
   end.setFullYear(end.getFullYear() + 2);
-  return end > TODAY;
+  return end > today();
 }
 export function exemptEnd(org: Pick<Org, "est">): string {
   const e = new Date(org.est + "T12:00:00");
@@ -101,9 +102,11 @@ type Blocker =
   | { k: "q"; q: Question; t: string; d: string }
   | { k: "th"; q: Question; t: string; d: string }
   | { k: "doc"; doc: Doc; t: string; d: string }
-  | { k: "ent"; e: Entitlement; t: string; d: string };
+  | { k: "ent"; e: Entitlement; t: string; d: string }
+  | { k: "empty"; t: string; d: string };
 export function blockers(s: State, t: Tender): Blocker[] {
   const out: Blocker[] = [];
+  if (!t.qs.length) out.push({ k: "empty", t: "No questions", d: "not added" });
   t.qs.forEach((q) => { if (q.status !== "approved") out.push({ k: "q", q, t: "Question " + pad(q.no), d: q.a ? "not approved" : "not answered" }); });
   t.qs.forEach((q) => { if (openThread(q)) out.push({ k: "th", q, t: "Question " + pad(q.no), d: "open comment thread" }); });
   if (s.org.vaultOn || t.settings.vault)
@@ -123,6 +126,7 @@ export function gateRows(s: State, t: Tender): GateRow[] {
   b.forEach((x) => { if (x.k === "doc") rows.push({ kind: "profile", t: x.t, d: x.d, go: "Replace" }); });
   b.forEach((x) => { if (x.k === "ent") rows.push({ kind: "sign", id: x.e.id, t: x.t, d: x.d, go: "Sign" }); });
   b.forEach((x) => { if (x.k === "th") rows.push({ kind: "question", q: x.q.id, t: x.t, d: x.d, go: "Open" }); });
+  if (!t.qs.length) rows.push({ kind: "review", t: "No questions yet", d: "Add the tender's questions before exporting", go: "Add" });
   const qs = b.filter((x): x is Extract<Blocker, { k: "q" }> => x.k === "q");
   if (qs.length) {
     const nw = qs.filter((x) => !x.q.a).length;
@@ -170,7 +174,7 @@ export function stageOpen(s: State, t: Tender, n: Stage): boolean {
 }
 export const TAB: Record<Stage, string> = { 2: "details", 3: "verdict", 4: "questions", 5: "export" };
 export const STAGE_OF: Record<string, Stage> = { details: 2, verdict: 3, questions: 4, export: 5 };
-export const tenderPath = (id: string, n: Stage) => `/tenders/${encodeURIComponent(id)}/${TAB[n]}`;
+export const tenderPath = (id: string, n: Stage) => `/tender/${TAB[n]}?id=${encodeURIComponent(id)}`;
 
 export const libCount = (s: State) => ({
   docs: s.docs.filter((x) => x.id !== "pp" && (x.st === "ok" || x.st === "exp" || x.st === "self")).length,

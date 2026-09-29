@@ -1,6 +1,9 @@
 "use client";
 /* First run: the company profile. CR, then ICV, then the document library. */
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { readCrInto } from "@/lib/ai/run";
+import { pickFiles } from "@/lib/files";
 import { DocsList } from "@/components/DocsList";
 import { I } from "@/components/icons";
 import { Toggle } from "@/components/ui";
@@ -15,6 +18,8 @@ export function Setup() {
   const router = useRouter();
   const o = s.ob;
   const go = (p: string | void) => { if (p) router.push(p); };
+  const [reading, setReading] = useState(false);
+  const cr = async () => { const [f] = await pickFiles(false, ".pdf,image/*"); if (!f) return; setReading(true); try { await readCrInto(f); } catch (e) { a.say(`Could not read it: ${(e as Error).message}`); } setReading(false); };
 
   const fld = (lb: string, v: string, k: string, ro?: boolean) => (
     <div className="field" key={k}>
@@ -44,7 +49,7 @@ export function Setup() {
             <p className="lede">Qeema reads it and fills in the rest. You check it, you do not type it. This is the only setup that matters before your first tender.</p>
             <div className="card">
               {!o.crDone ? (
-                <button className="drop" onClick={a.obcr}><span className="ic"><I.up /></span><h4>Drop your CR certificate</h4><p>PDF or photo · Arabic or English</p></button>
+                <button className="drop" onClick={cr} disabled={reading}><span className="ic"><I.up /></span><h4>{reading ? "Reading your CR…" : "Choose your CR certificate"}</h4><p>PDF or photo · Arabic or English · <u onClick={(e) => { e.stopPropagation(); a.obcr(); }}>or type it in</u></p></button>
               ) : (
                 <>
                   <div className="file"><span className="fi">PDF</span><div><div className="fn">CR Certificate 2025.pdf</div><div className="fs">Read in 3 seconds · 6 fields found</div></div><span className="ok">✓</span></div>

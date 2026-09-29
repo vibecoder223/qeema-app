@@ -1,11 +1,11 @@
 "use client";
-import { PEOPLE } from "@/lib/data";
 import { useA, useStore } from "@/lib/store";
 
 /* "Assign to" popover. Opened from a question; positioned at its trigger. */
 export function AssignPop() {
   const pop = useStore((s) => s.pop);
   const me = useStore((s) => s.me);
+  const people = useStore((s) => s.people);
   const a = useA();
   if (!pop) return null;
   return (
@@ -13,7 +13,7 @@ export function AssignPop() {
       <div className="scrim" onClick={a.unpop} />
       <div className="pop" style={{ left: pop.x, top: pop.y }} role="menu">
         <span className="slab">Assign to</span>
-        {PEOPLE.map((p) => (
+        {people.map((p) => (
           <button key={p.id} onClick={() => a.doassign(p.id)} role="menuitem">
             <span className={`av sm${p.id === me ? " me" : ""}`}>{p.ini}</span>
             <span className="nm">{p.name}</span>

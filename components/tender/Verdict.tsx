@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { I } from "@/components/icons";
 import { Avatar, Body } from "@/components/ui";
-import { PEOPLE, REDIRECTS } from "@/lib/data";
+import { REDIRECTS } from "@/lib/data";
 import { days, fmtDate, person, qr } from "@/lib/format";
 import { exemptEnd, position, prog } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
@@ -115,7 +115,7 @@ function GoCard({ t }: { t: Tender }) {
       <div className="decb">
         <span className="l">Bid lead</span>
         <div className="leads">
-          {PEOPLE.map((x) => (
+          {s.people.map((x) => (
             <button key={x.id} className={`lp${x.id === lead ? " on" : ""}`} aria-pressed={x.id === lead} onClick={() => a.lead(x.id)}>
               <Avatar id={x.id} sm />{x.name.split(" ")[0]}
             </button>

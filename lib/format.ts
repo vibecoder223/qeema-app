@@ -1,4 +1,5 @@
-import { PEOPLE, TODAY } from "./data";
+import { today } from "./clock";
+import { people } from "./people";
 import type { Person, PersonId } from "./types";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -15,7 +16,7 @@ export function short(iso: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
 }
 export function days(iso: string): number {
-  return Math.round((at(iso).getTime() - TODAY.getTime()) / 864e5);
+  return Math.round((at(iso).getTime() - today().getTime()) / 864e5);
 }
 export const qr = (n: number) => "QR " + n.toLocaleString("en-US");
 /* 1200 → "QR 1.2m", 0 → "QR 0" */
@@ -28,7 +29,7 @@ export const pad = (n: number) => (n < 10 ? "0" : "") + n;
 export const letter = (i: number) => String.fromCharCode(65 + i);
 
 export function person(id: PersonId | null | undefined): Person | null {
-  return PEOPLE.find((p) => p.id === id) ?? null;
+  return people().find((p) => p.id === id) ?? null;
 }
 export const first = (id: PersonId | null | undefined) => person(id)?.name.split(" ")[0] ?? "";
 
@@ -36,4 +37,7 @@ export function greet(): string {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
-export const now = () => "25 Sep, " + new Date().toTimeString().slice(0, 5);
+export const now = () => { const d = today(); return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}, ${new Date().toTimeString().slice(0, 5)}`; };
+export const initials = (name: string) => name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+/* Percent without dividing by zero. */
+export const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);

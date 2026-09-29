@@ -13,7 +13,7 @@ export function Details({ t }: { t: Tender }) {
   const m = t.meta, n = t.readN, done = n >= READ_STEPS, lib = libCount(s);
   const secs = [...new Set(t.qs.map((q) => q.sec))];
   const steps: [string, string][] = [
-    ["Reading the document", `${m.pages} pages · ${m.lang}`],
+    ["Reading the document", m.pages ? `${m.pages} pages${m.lang ? " · " + m.lang : ""}` : m.file],
     ["Pulling out tender details", "Buyer, reference, deadline"],
     ["Finding questions and requirements", `${t.qs.length} questions in ${secs.length} sections`],
     ["Checking the local-content clause", m.gated ? `Minimum ICV ${m.minIcv}%` : "No ICV requirement"],
@@ -23,8 +23,8 @@ export function Details({ t }: { t: Tender }) {
 
   return (
     <Body wide>
-      <h1 className="h1">{done ? "Read" : "Reading"} {m.id}</h1>
-      <p className="lede">{m.file} · {m.size}. {done ? "Here is what Qeema found and where every answer comes from." : "One pass. You can leave this page, it keeps going."}</p>
+      <h1 className="h1">{done ? "Read" : "Reading"} {m.id || m.title}</h1>
+      <p className="lede">{m.file}{m.size ? ` · ${m.size}` : ""}. {done ? (t.manual && !t.qs.length ? "Nothing was read automatically. Check the details below, then add the questions on the Questions tab." : "Here is what Qeema found and where every answer comes from.") : "One pass. You can leave this page, it keeps going."}</p>
       <div className="rd2">
         <ol className="pipe">
           {steps.map(([title, sub], i) => {
@@ -108,7 +108,7 @@ function DetailsCard({ t }: { t: Tender }) {
         {!ed && <button className="btn q sm" style={{ marginInlineStart: "auto" }} onClick={() => { const p = a.detedit(); if (p) router.push(p); }}>Edit</button>}
       </div>
       <div className="mfh">Required<span>6</span></div>
-      {row("Reference", "buyer", <span className="ro">{m.id}</span>, true)}
+      {row("Reference", "buyer", ed ? txt("meta", "id", m.id) : <span className="ro">{m.id || "Not stated"}</span>, true)}
       {row("Buyer", "buyer", txt("meta", "buyer", m.buyer), true)}
       {row("Title and scope", "title", txt("meta", "title", m.title), true)}
       {row("Submission deadline", "deadline", ed ? <span className="two">{txt("meta", "deadline", m.deadline, "date")}{txt("det", "time", d.time, "time")}</span>

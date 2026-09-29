@@ -1,11 +1,13 @@
 "use client";
 /* Stage 4: every answer reviewed and approved by someone other than its owner. */
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { draftAll, draftOne } from "@/lib/ai/run";
+import { aiBy } from "@/lib/ai";
 import { useRouter } from "next/navigation";
 import { popAt } from "@/components/shell/AssignPop";
 import { I } from "@/components/icons";
 import { Avatar, Mentions } from "@/components/ui";
-import { pad, person } from "@/lib/format";
+import { pad, person, pct } from "@/lib/format";
 import { FILTERS, ROWLABEL, STCLS, badge, canApprove, docById, docState, inFilter, openThread, position, prog, qById, todo } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
 import type { Question, Tender } from "@/lib/types";
@@ -48,7 +50,13 @@ function List({ t }: { t: Tender }) {
         ))}
         <span className="sp meta tnum">{p.approved} of {p.total} approved</span>
       </div>
-      {!list.length ? (
+      <QTools t={t} />
+      {!t.qs.length ? (
+        <div className="empty">
+          <h3>No questions yet</h3>
+          <p>Paste the tender&apos;s questions above, one per line. Qeema drafts what your library can answer and leaves the rest for your team.</p>
+        </div>
+      ) : !list.length ? (
         <div className="empty">
           <h3>{s.filter === "todo" ? "Everything is approved" : "Nothing here"}</h3>
           <p>{s.filter === "todo" ? "Every question has a name against it. Export is next." : "Try another filter."}</p>
@@ -66,6 +74,46 @@ function List({ t }: { t: Tender }) {
         </div>
       )}
     </>
+  );
+}
+
+/* Add questions by hand (paste a list), and draft every unanswered one with the AI. */
+function QTools({ t }: { t: Tender }) {
+  const a = useA();
+  const [open, setOpen] = useState(!t.qs.length);
+  const [sec, setSec] = useState("");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const secs = [...new Set(t.qs.map((q) => q.sec))];
+  const pending = t.qs.filter((q) => !q.a && q.reuse !== "human").length;
+  const lines = text.split(/\n+/).map((x) => x.replace(/^\s*(\d+[.)]|[-•*])\s*/, "").trim()).filter(Boolean);
+  return (
+    <div className="qtools">
+      <div className="qtools-r">
+        <button className="btn o sm" onClick={() => setOpen(!open)} aria-expanded={open}><I.plus />Add questions</button>
+        {pending > 0 && (
+          <button className="btn q sm" disabled={busy} onClick={async () => { setBusy(true); const n = await draftAll(t.key); setBusy(false); a.say(`${n} of ${pending} drafted by ${aiBy()}`); }}>
+            {busy ? "Drafting…" : `Draft ${pending} unanswered with AI`}
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="addq">
+          <label className="field"><span>Section</span>
+            <input className="inp" list="qsecs" value={sec} placeholder="e.g. Technical" onChange={(e) => setSec(e.target.value)} />
+            <datalist id="qsecs">{secs.map((x) => <option key={x} value={x} />)}</datalist>
+          </label>
+          <label className="field"><span>Questions, one per line</span>
+            <textarea className="inp" rows={5} value={text} placeholder={"Describe your HSE management system.\nProvide audited accounts for the last three years."} onChange={(e) => setText(e.target.value)} />
+          </label>
+          <div className="actrow">
+            <button className="btn p sm" disabled={!lines.length} onClick={() => { a.addQuestions(sec, lines); setText(""); }}>Add {lines.length || ""} question{lines.length === 1 ? "" : "s"}</button>
+            <button className="btn q sm" onClick={() => setOpen(false)}>Close</button>
+            <span className="meta" style={{ alignSelf: "center" }}>Numbering and bullets are stripped.</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -93,12 +141,18 @@ function Panel({ t, q }: { t: Tender; q: Question }) {
   const ans = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (s.edit) ans.current?.focus(); }, [s.edit]);
   const gap = q.reuse === "gap" && q.gapDoc ? docById(s, q.gapDoc) : null;
+  const [qedit, setQedit] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  useEffect(() => { setQedit(false); }, [q.id]);
+  const draft = async () => { setDrafting(true); const r = await draftOne(t.key, q.id); setDrafting(false);
+    a.say(r === "drafted" ? "Drafted from your library. Review before approving." : r === "human" ? "This one is for a person to write" : r === "no_source" ? "Nothing in your library answers this" : "Could not draft"); };
 
   return (
     <aside className="pnl" aria-label={`Question ${q.no}`}>
       <div className="pnl-top">
         <span className="crumb">Question <b>{pad(q.no)}</b> of {t.qs.length}</span>
         <div style={{ marginInlineStart: "auto", display: "flex", gap: 4 }}>
+          <button className="btn q sm" onClick={() => setQedit(!qedit)} aria-expanded={qedit}>{qedit ? "Done" : "Edit question"}</button>
           <button className="btn q sm" onClick={() => a.step(-1)} disabled={i <= 0} aria-label="Previous">↑</button>
           <button className="btn q sm" onClick={() => a.step(1)} disabled={i >= t.qs.length - 1} aria-label="Next">↓</button>
           <button className="btn q sm" onClick={() => a.sel(null)} aria-label="Close">✕</button>
@@ -107,7 +161,18 @@ function Panel({ t, q }: { t: Tender; q: Question }) {
       <div className="pnl-body">
         <div className="pgrid">
           <div className="pmain">
-            <div><div className="pq">{q.text}</div><div className="pref">Tender: <i>{q.ref}</i></div></div>
+            {qedit ? (
+              <div className="qedit">
+                <label className="field"><span>Question</span><textarea className="inp" rows={3} value={q.text} onChange={(e) => a.editQuestion(q.id, { text: e.target.value })} /></label>
+                <div className="grid2">
+                  <label className="field"><span>Section</span><input className="inp" value={q.sec} onChange={(e) => a.editQuestion(q.id, { sec: e.target.value })} /></label>
+                  <label className="field"><span>Where in the tender</span><input className="inp" value={q.ref} placeholder="e.g. Scope of Work, 4.1" onChange={(e) => a.editQuestion(q.id, { ref: e.target.value })} /></label>
+                </div>
+                <div className="actrow"><button className="btn q sm danger" onClick={() => { if (confirm(`Delete question ${pad(q.no)}?`)) a.deleteQuestion(q.id); }}>Delete question</button></div>
+              </div>
+            ) : (
+              <div><div className="pq">{q.text}</div>{q.ref && <div className="pref">Tender: <i>{q.ref}</i></div>}</div>
+            )}
             <div>
               <div className="plab">Answer <span className={`bdg ${bk}`}>{blabel}</span></div>
               {s.edit ? (
@@ -125,6 +190,7 @@ function Panel({ t, q }: { t: Tender; q: Question }) {
                 <>
                   <div className="ans none">{q.reuse === "gap" ? "Nothing in your documents answers this. Qeema will not write one for you." : "Qeema does not write this. Prices, plans and staffing are decisions only you can make."}</div>
                   <div className="actrow" style={{ marginTop: 9 }}>
+                    {q.reuse !== "human" && <button className="btn p sm" disabled={drafting} onClick={draft}>{drafting ? "Drafting…" : "Draft with AI"}</button>}
                     {gap && docState(gap) === "miss" && <button className="btn o sm" onClick={() => a.gapup(gap.id)}>Upload {gap.n.toLowerCase()}</button>}
                     <button className="btn o sm" onClick={a.write}>Write it myself</button>
                     <button className="btn q sm" onClick={(e) => { const p = popAt(e.currentTarget); a.assign(q.id, p.x, p.y); }}>Assign…</button>
@@ -208,7 +274,7 @@ function Focus({ t }: { t: Tender }) {
   const head = (
     <div className="fprog">
       <button className="btn q sm" onClick={() => a.focus(false)}>✕ Exit <span className="kbd">Esc</span></button>
-      <div className="bar"><i style={{ width: `${Math.round((p.approved / p.total) * 100)}%` }} /></div>
+      <div className="bar"><i style={{ width: `${pct(p.approved, p.total)}%` }} /></div>
       <span className="n">{p.approved} / {p.total}</span>
     </div>
   );

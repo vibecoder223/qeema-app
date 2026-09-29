@@ -3,7 +3,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { I } from "@/components/icons";
-import { PEOPLE, SCEN } from "@/lib/data";
+import { SCEN } from "@/lib/data";
+import { aiLabel } from "@/lib/ai";
 import { docState, isExempt, queue } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
 import type { ScenarioKey } from "@/lib/types";
@@ -21,11 +22,11 @@ function NavLink({ href, icon, label, count, warn, on, onClick }: { href: string
 export function Sidebar() {
   const s = useStore();
   const a = useA();
-  const path = usePathname();
+  const path = usePathname().replace(/\/$/, "") || "/";
   const router = useRouter();
   const q = queue(s), qc = q.approve.length + q.write.length + q.mention.length;
   const warn = s.docs.filter((d) => { const x = docState(d); return x === "exp" || x === "soon"; }).length;
-  const onTender = path.startsWith("/tenders") && path !== "/tenders/new";
+  const onTender = path === "/tenders" || path.startsWith("/tender/");
 
   return (
     <nav className="nav" aria-label="Main">
@@ -43,12 +44,13 @@ export function Sidebar() {
         <span className="slab hide">Company</span>
         <NavLink href="/profile" icon={<I.org />} label="Company profile" count={warn ? String(warn) : ""} warn on={path === "/profile"} />
         <NavLink href="/icv" icon={<I.gauge />} label="ICV" count={s.org.cert ? s.org.cert.score + "%" : isExempt(s.org) ? "exempt" : ""} on={path === "/icv"} />
+        <NavLink href="/settings" icon={<I.info />} label="AI connection" count={aiLabel() === "Mock AI" ? "mock" : "live"} on={path === "/settings"} />
       </div>
       <div className="navfoot">
         <div className="hide">
           <span className="slab">Acting as</span>
           <div className="acting">
-            {PEOPLE.map((p) => (
+            {s.people.map((p) => (
               <button key={p.id} className={`av sm${p.id === s.me ? " me" : ""}`} onClick={() => a.actas(p.id)} title={`${p.name} · ${p.role}`}>{p.ini}</button>
             ))}
           </div>

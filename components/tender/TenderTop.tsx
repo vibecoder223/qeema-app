@@ -23,6 +23,7 @@ export function TenderTop({ t }: { t: Tender }) {
       )}
       <span className={`st tst ${tone}`}>{label}</span>
       <span className="meta tnum">Closes {short(t.meta.deadline)} · {days(t.meta.deadline)} days</span>
+      <button className="btn q sm danger" onClick={() => { if (confirm(`Delete ${t.meta.id || "this tender"}? Its answers and comments go too.`)) { router.push("/tenders"); a.deleteTender(t.key); } }}>Delete</button>
     </>
   );
   const tabs: [Stage, string, React.ReactNode][] = ex
@@ -37,7 +38,7 @@ export function TenderTop({ t }: { t: Tender }) {
   return (
     <>
       <Top
-        crumb={<><Link className="crumbl" href="/tenders">Tenders</Link><span className="sl">/</span><b>{t.meta.id}</b><span className="cs">{t.meta.buyer} · {t.meta.title}</span></>}
+        crumb={<><Link className="crumbl" href="/tenders">Tenders</Link><span className="sl">/</span><b>{t.meta.id || "New tender"}</b><span className="cs">{[t.meta.buyer, t.meta.title].filter(Boolean).join(" · ")}</span></>}
         right={right}
       />
       {t.readN >= READ_STEPS && (

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { I } from "@/components/icons";
 import { Avatar, Body, Top } from "@/components/ui";
-import { days, greet, pad, person, qr, short } from "@/lib/format";
+import { days, greet, pad, person, qr, short, pct } from "@/lib/format";
 import { POSN, READ_STEPS, docLabel, nextAction, position, prog, queue, risks } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
 
@@ -38,17 +38,18 @@ export function Home() {
   /* Order: things only you can write, then people waiting on you, then approvals grouped per tender. */
   const rows: { k: React.ReactNode; b: string; s: string; go: string; on: () => void }[] = [];
   Q.write.forEach((x) => rows.push({ k: <span className="kt wr"><I.pen />Write</span>, b: x.q.text,
-    s: `${x.t.meta.id} · ${x.q.sec}${x.q.reuse === "human" ? " · Qeema does not draft this" : ""}`, go: "Write", on: () => go(a.openq(x.t.meta.id, x.q.id)) }));
+    s: `${x.t.meta.id} · ${x.q.sec}${x.q.reuse === "human" ? " · Qeema does not draft this" : ""}`, go: "Write", on: () => go(a.openq(x.t.key, x.q.id)) }));
   Q.mention.forEach((x) => rows.push({ k: <span className="kt mn"><I.at />Mention</span>,
     b: `${person(x.m.by)!.name}: "${x.m.tx.replace(/@\S+( \S+)?\s?/, "").slice(0, 90)}"`,
-    s: `${x.t.meta.id} · Q${pad(x.q.no)} ${x.q.text}`, go: "Reply", on: () => go(a.openq(x.t.meta.id, x.q.id)) }));
+    s: `${x.t.meta.id} · Q${pad(x.q.no)} ${x.q.text}`, go: "Reply", on: () => go(a.openq(x.t.key, x.q.id)) }));
   const byT: Record<string, typeof Q.approve> = {};
-  Q.approve.forEach((x) => { (byT[x.t.meta.id] ||= []).push(x); });
+  Q.approve.forEach((x) => { (byT[x.t.key] ||= []).push(x); });
   Object.entries(byT).forEach(([id, L]) => {
+    const ref = L[0].t.meta.id || L[0].t.meta.title;
     const who = [...new Set(L.map((x) => person(x.q.owner)!.name.split(" ")[0]))];
     const nosrc = L.filter((x) => !x.q.cite).length;
     rows.push({ k: <span className="kt ap"><I.okc />Approve</span>, b: `${L.length} answer${L.length > 1 ? "s" : ""} ready for your approval`,
-      s: `${id} · drafted by ${who.join(", ")}${nosrc ? ` · ${nosrc} hand-written, no source` : " · all cited"}`, go: "Review", on: () => go(a.approvals(id)) });
+      s: `${ref} · drafted by ${who.join(", ")}${nosrc ? ` · ${nosrc} hand-written, no source` : " · all cited"}`, go: "Review", on: () => go(a.approvals(id)) });
   });
 
   const R = lead ? risks(s) : [];
@@ -119,14 +120,14 @@ export function Home() {
               <div className="thd"><span>Tender</span><span>Position</span><span>Progress</span><span>Closes</span><span>Next</span></div>
               {open.map((t) => {
                 const pos = position(s, t), p = prog(t), n = nextAction(s, t), d = days(t.meta.deadline), rd = t.readN >= READ_STEPS && t.reached >= 3;
-                const act = () => (n.stage === "profile" ? router.push("/profile") : go(a.open(t.meta.id, n.stage)));
+                const act = () => (n.stage === "profile" ? router.push("/profile") : go(a.open(t.key, n.stage)));
                 return (
-                  <button key={t.meta.id} className="trow" onClick={act}>
-                    <span className="t"><b>{t.meta.id}</b><span>{t.meta.buyer} · {t.meta.title}</span></span>
+                  <button key={t.key} className="trow" onClick={act}>
+                    <span className="t"><b>{t.meta.id || t.meta.title}</b><span>{t.meta.buyer} · {t.meta.title}</span></span>
                     <span><span className={`pos ${rd ? pos : "new"}`}><i />{!rd && <I.read />}{rd ? POSN[pos] : t.readN < READ_STEPS ? "Reading" : "Not opened"}</span></span>
                     <span>
                       {rd && pos !== "excluded"
-                        ? <><div className="bar" style={{ width: "100%" }}><i style={{ width: `${Math.round((p.approved / p.total) * 100)}%` }} /></div><span className="meta tnum">{p.approved} of {p.total} approved</span></>
+                        ? <><div className="bar" style={{ width: "100%" }}><i style={{ width: `${pct(p.approved, p.total)}%` }} /></div><span className="meta tnum">{p.approved} of {p.total} approved</span></>
                         : <span className="meta">·</span>}
                     </span>
                     <span className={`dl${d <= 10 ? " near" : ""}`}>{d} days<span>{short(t.meta.deadline)}</span></span>
