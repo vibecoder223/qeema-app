@@ -1,24 +1,14 @@
-/* Which AI the app uses: the built-in mock, or a backend you point it at in Settings.
-   Stored per browser, so each partner can connect their own server. */
+/* Which AI the app uses. Set NEXT_PUBLIC_AI_ENDPOINT (and optionally NEXT_PUBLIC_AI_TOKEN)
+   at build time to call a backend; otherwise the built-in mock answers. */
 import type { QeemaAI } from "./contract";
 import { httpAI } from "./http";
 import { mockAI } from "./mock";
 
-export interface AiSettings { endpoint: string; token: string }
-const KEY = "qeema.ai";
+const ENDPOINT = process.env.NEXT_PUBLIC_AI_ENDPOINT || "";
+const TOKEN = process.env.NEXT_PUBLIC_AI_TOKEN || undefined;
 
-export function aiSettings(): AiSettings {
-  if (typeof window === "undefined") return { endpoint: "", token: "" };
-  try { return { endpoint: "", token: "", ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return { endpoint: "", token: "" }; }
-}
-export function saveAiSettings(s: AiSettings) { localStorage.setItem(KEY, JSON.stringify(s)); }
-
-export function ai(): QeemaAI {
-  const s = aiSettings();
-  return s.endpoint ? httpAI(s.endpoint, s.token || undefined) : mockAI;
-}
-export const aiLabel = () => (aiSettings().endpoint ? "Connected backend" : "Mock AI");
+export const ai = (): QeemaAI => (ENDPOINT ? httpAI(ENDPOINT, TOKEN) : mockAI);
 /* "drafted by the mock AI" / "drafted by your backend" */
-export const aiBy = () => (aiSettings().endpoint ? "your backend" : "the mock AI");
+export const aiBy = () => (ENDPOINT ? "your backend" : "the mock AI");
 
 export type * from "./contract";

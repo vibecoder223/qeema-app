@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { I } from "@/components/icons";
 import { SCEN } from "@/lib/data";
-import { aiLabel } from "@/lib/ai";
+import { clearFiles } from "@/lib/files";
 import { docState, isExempt, queue } from "@/lib/logic";
 import { useA, useStore } from "@/lib/store";
 import type { ScenarioKey } from "@/lib/types";
@@ -44,7 +44,6 @@ export function Sidebar() {
         <span className="slab hide">Company</span>
         <NavLink href="/profile" icon={<I.org />} label="Company profile" count={warn ? String(warn) : ""} warn on={path === "/profile"} />
         <NavLink href="/icv" icon={<I.gauge />} label="ICV" count={s.org.cert ? s.org.cert.score + "%" : isExempt(s.org) ? "exempt" : ""} on={path === "/icv"} />
-        <NavLink href="/settings" icon={<I.info />} label="AI connection" count={aiLabel() === "Mock AI" ? "mock" : "live"} on={path === "/settings"} />
       </div>
       <div className="navfoot">
         <div className="hide">
@@ -67,6 +66,7 @@ export function Sidebar() {
           <div className="row">
             <button className="btn o sm" style={{ flex: 1 }} onClick={() => router.push(a.jump()!)}>Jump in</button>
             <button className="btn q sm" onClick={() => router.push(a.restart()!)}>Setup</button>
+            <button className="btn q sm" title="Delete everything you created in this browser" onClick={async () => { if (!confirm("Delete everything you created in this browser and reload the sample company?")) return; await clearFiles(); router.push(a.jump()!); }}>Reset</button>
           </div>
         </div>
         <button className="nl hide" onClick={a.theme}><span className="gl"><I.theme /></span>Theme: {s.theme}</button>

@@ -4,8 +4,11 @@ Qeema needs **four AI jobs**. Everything else (ICV eligibility, the review and a
 workflow, the export gate, the bid pack) is rules and people, and already works in the app.
 
 Until a backend exists, the app uses a built-in mock (`lib/ai/mock.ts`). To use a real one,
-open **AI connection** in the app sidebar, enter your server's base address, and save. Every
-upload, read and draft then goes to your server. The setting is per browser.
+build the app with your server's base address, and every upload, read and draft goes to it:
+
+```bash
+NEXT_PUBLIC_AI_ENDPOINT=https://ai.example.com npm run dev      # optional: NEXT_PUBLIC_AI_TOKEN=…
+```
 
 | # | Job | Endpoint | When the app calls it |
 |---|---|---|---|
@@ -13,7 +16,7 @@ upload, read and draft then goes to your server. The setting is per browser.
 | 2 | Draft an answer | `POST /v1/draft-answer` | After job 1, for every answerable question; and **Draft with AI** on any question |
 | 3 | Classify a document | `POST /v1/classify-document` | A user uploads to the **Company library**, or attaches a missing document |
 | 4 | Read the CR | `POST /v1/read-cr` | First-run setup, step 1 |
-| – | Health | `GET /v1/health` | The **Test** button in AI connection. Return 200. |
+| – | Health | `GET /v1/health` | For your own monitoring. Return 200. |
 
 TypeScript types for every request and response: [`lib/ai/contract.ts`](lib/ai/contract.ts).
 The HTTP client: [`lib/ai/http.ts`](lib/ai/http.ts). A runnable example server that returns
@@ -23,7 +26,7 @@ canned answers: [`examples/mock-server.mjs`](examples/mock-server.mjs).
 
 - Base address, e.g. `https://ai.example.com`. The app appends `/v1/...`.
 - Files are sent as `multipart/form-data`; everything else is JSON.
-- Optional token from the settings page, sent as `Authorization: Bearer <token>`.
+- Optional token from `NEXT_PUBLIC_AI_TOKEN`, sent as `Authorization: Bearer <token>`. It ships to the browser, so use it only to identify the app, not as a secret.
 - The app runs in the browser, so the server **must allow CORS** from the app's origin
   (`https://vibecoder223.github.io`, and `http://localhost:3100` for development).
 - Non-2xx responses are shown to the user as an error; the app keeps working without the result.
@@ -170,6 +173,6 @@ Code: `lib/ai/run.ts` calls the jobs and applies results through store actions
 node examples/mock-server.mjs     # listens on http://localhost:8787
 ```
 
-Then in the app: **AI connection** → `http://localhost:8787` → Test → Save. Upload any tender:
+Then run the app against it: `NEXT_PUBLIC_AI_ENDPOINT=http://localhost:8787 npm run dev`. Upload any tender:
 it comes back with canned details and questions from the example server, not the built-in mock.
 Replace the handlers in that file with real model calls and you have a backend.

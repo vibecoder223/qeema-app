@@ -3,11 +3,10 @@
 Qatar tender responses, drafted from a company's own records and reviewed by its team.
 
 **Live demo:** https://vibecoder223.github.io/qeema-app/, with no sign-up. Everything you create stays in
-your own browser; **AI connection → Reset demo data** starts over.
+your own browser; **Reset** in the sidebar's demo panel starts over.
 
 **Building the AI backend?** Read [AI-CONTRACT.md](AI-CONTRACT.md). Qeema needs four AI jobs; the app
-runs today on a built-in mock and switches to your server when you enter its address under
-**AI connection**.
+runs today on a built-in mock and switches to your server when built with `NEXT_PUBLIC_AI_ENDPOINT`.
 
 ```bash
 npm install
@@ -28,7 +27,6 @@ node examples/mock-server.mjs     # optional: an example AI backend on :8787
 | **Export** | The gate, then one zip: response document, submission checklist, manifest, annex files. Record won or lost after |
 | **Company profile** | Edit the company, upload and manage the library (open, replace, expiry dates, delete), manage the team |
 | **ICV** | The score and what would move it |
-| **AI connection** | Mock or your backend. Test, save, reset the demo |
 
 The sidebar's demo panel switches company scenario and who you are acting as, so one person can
 play the whole team (the owner writes, someone else approves).
